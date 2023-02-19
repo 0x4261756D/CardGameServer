@@ -1,0 +1,28 @@
+{
+	"linux":
+	{
+		"port": 7043,
+		"room_min_port": 37042,
+		"room_max_port": 39942,
+		"core_info":
+		{
+			"FileName": "../HardlegCardGameCore/bin/Debug/net6.0/HardlegCardGameCore",
+			"Arguments": "--mode=duel --config=../../../config/config.json",
+			"WorkingDirectory": "/Data/Prog/Programme/HardlegCardGameCore"
+		},
+		"additional_cards_path": "./additional_cards.json",
+		"should_record": true
+	},
+	"windows":
+	{
+		"port": 7043,
+		"room_min_port": 37042,
+		"room_max_port": 39942,
+		"core_info":
+		{
+			"FileName": "..\\HardlegCardGameCore\\bin\\Debug\\net6.0\\HardlegCardGameCore.exe",
+			"Arguments": "--mode=duel --config=..\\..\\..\\config\\config.json"
+		},
+		"additional_cards_path": ".\\additional_cards.json"
+	}
+}
