@@ -106,9 +106,9 @@ class Program
 		List<byte> payload = new List<byte>();
 		if (type >= NetworkingConstants.PACKET_COUNT)
 		{
-			throw new Exception($"ERROR: Unknown packet type encountered: {type} | {packet}");
+			throw new Exception($"ERROR: Unknown packet type encountered: Packet type: {NetworkingConstants.PacketTypeToName(type)} ({type}) | {packet}");
 		}
-		Functions.Log($"Packet type: {NetworkingConstants.PacketTypeToName(type)}({type})", includeFullPath: true);
+		Functions.Log($"Received packet of type {type}", includeFullPath: true);
 		if (type == NetworkingConstants.PACKET_SERVER_CREATE_REQUEST)
 		{
 			string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(packet).name!;
@@ -396,7 +396,7 @@ class Program
 		}
 		else
 		{
-			throw new Exception($"ERROR: Unable to process this packet: {type} | {packet}");
+			throw new Exception($"ERROR: Unable to process this packet: Packet type: {NetworkingConstants.PacketTypeToName(type)}({type}) | {packet}");
 		}
 		stream.Write(payload.ToArray(), 0, payload.Count);
 		return false;
