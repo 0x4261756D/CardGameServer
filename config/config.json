@@ -6,9 +6,9 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"FileName": "../HardlegCardGameCore/bin/Debug/net6.0/HardlegCardGameCore",
+			"FileName": "../CardGameCore/bin/Debug/net6.0/CardGameCore",
 			"Arguments": "--mode=duel --config=../../../config/config.json",
-			"WorkingDirectory": "/Data/Prog/Programme/HardlegCardGameCore"
+			"WorkingDirectory": "/Data/Prog/Programme/CardGameCore"
 		},
 		"additional_cards_path": "./additional_cards.json",
 		"should_record": true
@@ -20,7 +20,7 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"FileName": "..\\HardlegCardGameCore\\bin\\Debug\\net6.0\\HardlegCardGameCore.exe",
+			"FileName": "..\\CardGameCore\\bin\\Debug\\net6.0\\CardGameCore.exe",
 			"Arguments": "--mode=duel --config=..\\..\\..\\config\\config.json"
 		},
 		"additional_cards_path": ".\\additional_cards.json"
