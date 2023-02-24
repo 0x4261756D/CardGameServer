@@ -24,9 +24,9 @@ class Room
 		players[0] = new Player() { Name = name, ready = false, ID = id, noshuffle = false };
 		Functions.Log("Creating a new room. Host name: " + name, includeFullPath: true);
 	}
-	public string NameToFilename(string name)
+	public string CardNameToFilename(string name)
 	{
-		return Regex.Replace(name, @"[^a-zA-Z0-9]", "");
+		return Regex.Replace(name, @"[^#\|a-zA-Z0-9]", "");
 	}
 	public string? GeneratePlayerString()
 	{
@@ -39,7 +39,7 @@ class Room
 		foreach (string name in players[0].Decklist!)
 		{
 			if (s != "")
-				s += NameToFilename(name) + ";";
+				s += CardNameToFilename(name) + ";";
 		}
 		s = s.Remove(s.Length - 1, 1);
 		s += "µ" + players[1].Name + "µ" + players[1].ID + "µ";
@@ -51,7 +51,7 @@ class Room
 		foreach (string name in players[1].Decklist!)
 		{
 			if (s != "")
-				s += NameToFilename(name) + ";";
+				s += CardNameToFilename(name) + ";";
 		}
 		s = s.Remove(s.Length - 1, 1);
 		s += "µ";
