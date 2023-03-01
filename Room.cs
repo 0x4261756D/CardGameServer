@@ -31,26 +31,26 @@ class Room
 	public string? GeneratePlayerString()
 	{
 		string s = "µ" + players[0].Name + "µ" + players[0].ID + "µ";
-		if (players[0].Decklist == null)
+		if(players[0].Decklist == null)
 		{
 			Functions.Log($"Unable to generate player string, player 0 ({players[0].Name}) has no decklist", severity: Functions.LogSeverity.Error, includeFullPath: true);
 			return null;
 		}
-		foreach (string name in players[0].Decklist!)
+		foreach(string name in players[0].Decklist!)
 		{
-			if (s != "")
+			if(s != "")
 				s += CardNameToFilename(name) + ";";
 		}
 		s = s.Remove(s.Length - 1, 1);
 		s += "µ" + players[1].Name + "µ" + players[1].ID + "µ";
-		if (players[1].Decklist == null)
+		if(players[1].Decklist == null)
 		{
 			Functions.Log($"Unable to generate player string, player 1 ({players[1].Name}) has no decklist", severity: Functions.LogSeverity.Error, includeFullPath: true);
 			return null;
 		}
-		foreach (string name in players[1].Decklist!)
+		foreach(string name in players[1].Decklist!)
 		{
-			if (s != "")
+			if(s != "")
 				s += CardNameToFilename(name) + ";";
 		}
 		s = s.Remove(s.Length - 1, 1);
@@ -59,13 +59,13 @@ class Room
 	}
 	public bool StartGame()
 	{
-		if (!players[0].ready || !players[1].ready || core != null)
+		if(!players[0].ready || !players[1].ready || core != null)
 		{
 			Functions.Log("StartGame() was called for a not ready room", Functions.LogSeverity.Warning, includeFullPath: true);
 			return false;
 		}
 		string? playerString = GeneratePlayerString();
-		if (playerString == null)
+		if(playerString == null)
 		{
 			return false;
 		}
@@ -80,7 +80,7 @@ class Room
 			WorkingDirectory = Program.config.core_info.WorkingDirectory,
 		};
 		core = Process.Start(info);
-		if (core == null)
+		if(core == null)
 		{
 			Functions.Log("Could not start the core process", severity: Functions.LogSeverity.Error, includeFullPath: true);
 			return false;
