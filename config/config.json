@@ -6,7 +6,7 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"FileName": "../CardGameCore/bin/Debug/net6.0/CardGameCore",
+			"FileName": "../CardGameCore/bin/Debug/net7.0/CardGameCore",
 			"Arguments": "--mode=duel --config=../../../config/config.json",
 			"WorkingDirectory": "/Data/Prog/Programme/CardGameCore"
 		},
@@ -20,7 +20,7 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"FileName": "..\\CardGameCore\\bin\\Debug\\net6.0\\CardGameCore.exe",
+			"FileName": "..\\CardGameCore\\bin\\Debug\\net7.0\\CardGameCore.exe",
 			"Arguments": "--mode=duel --config=..\\..\\..\\config\\config.json"
 		},
 		"additional_cards_path": ".\\additional_cards.json"
