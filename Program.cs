@@ -113,33 +113,43 @@ class Program
 		{
 
 			case NetworkingConstants.PacketType.ServerCreateRequest:
+			{
+				string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(packet).name!;
+				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
+				if(name.Contains("µ"))
 				{
-					string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(packet).name!;
-					Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
-					if(name.Contains("µ"))
+					payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
 					{
-						payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
-						{
-							success = false,
-							reason = "Your name cannot contain 'µ'"
-						});
-					}
-					else if(waitingList.Exists(nameExists) || runningList.Exists(nameExists))
+						success = false,
+						reason = "Your name cannot contain 'µ'"
+					});
+				}
+				else if(waitingList.Exists(nameExists) || runningList.Exists(nameExists))
+				{
+					payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
 					{
-						payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
-						{
-							success = false,
-							reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
-						});
-					}
-					else
+						success = false,
+						reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
+					});
+				}
+				else
+				{
+					string id = BitConverter.ToString(Program.sha.ComputeHash(Encoding.UTF8.GetBytes(Program.seed + name))).Replace("-", "");
+					int currentPort = -1;
+					for(int i = config.room_min_port; i <= config.room_max_port; i++)
 					{
-						string id = BitConverter.ToString(Program.sha.ComputeHash(Encoding.UTF8.GetBytes(Program.seed + name))).Replace("-", "");
-						int currentPort = -1;
-						for(int i = config.room_min_port; i <= config.room_max_port; i++)
+						bool free = true;
+						foreach(Room r in waitingList)
 						{
-							bool free = true;
-							foreach(Room r in waitingList)
+							if(r.port == i)
+							{
+								free = false;
+								break;
+							}
+						}
+						if(free)
+						{
+							foreach(Room r in runningList)
 							{
 								if(r.port == i)
 								{
@@ -147,268 +157,258 @@ class Program
 									break;
 								}
 							}
-							if(free)
-							{
-								foreach(Room r in runningList)
-								{
-									if(r.port == i)
-									{
-										free = false;
-										break;
-									}
-								}
-							}
-							if(free)
-							{
-								Functions.Log($"Next port: {i}");
-								currentPort = i;
-								break;
-							}
 						}
-						if(currentPort == -1)
+						if(free)
 						{
-							Functions.Log("No free port found", severity: Functions.LogSeverity.Warning);
-							payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
-							{
-								success = false,
-								reason = "No free port found",
-							});
-						}
-						else
-						{
-							waitingList.Add(new Room(name, id, currentPort));
-							payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
-							{
-								success = true
-							});
+							Functions.Log($"Next port: {i}");
+							currentPort = i;
+							break;
 						}
 					}
-				}
-				break;
-			case NetworkingConstants.PacketType.ServerJoinRequest:
-				{
-					ServerPackets.JoinRequest request = Functions.DeserializeJson<ServerPackets.JoinRequest>(packet);
-					Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
-					if(request.name!.Contains("µ"))
+					if(currentPort == -1)
 					{
-						payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
+						Functions.Log("No free port found", severity: Functions.LogSeverity.Warning);
+						payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
 						{
 							success = false,
-							reason = "Your name cannot contain 'µ'"
-						});
-					}
-					else if(waitingList.FindIndex(nameExists) != -1 || runningList.FindIndex(nameExists) != -1)
-					{
-						payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
-						{
-							success = false,
-							reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
+							reason = "No free port found",
 						});
 					}
 					else
 					{
-						int index = waitingList.FindIndex(x => x.players[0].Name == request.targetName);
-						if(index == -1)
-						{
-							payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
-							{
-								success = false,
-								reason = "No player with that name hosts a game right now"
-							});
-						}
-						else
-						{
-							string id = BitConverter.ToString(Program.sha.ComputeHash(Encoding.UTF8.GetBytes(Program.seed + request.name))).Replace("-", "");
-							waitingList[index].players[1] = new Room.Player { Name = request.name, ID = id };
-							payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
-							{
-								success = true
-							});
-						}
-					}
-				}
-				break;
-			case NetworkingConstants.PacketType.ServerLeaveRequest:
-				{
-					string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(packet).name!;
-					Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
-					int index = Program.waitingList.FindIndex(nameExists);
-					if(index == -1)
-					{
-						payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
-						{
-							success = false,
-							reason = "No player with that name found in a room"
-						});
-					}
-					else
-					{
-						if(waitingList[index].players[0].Name == name)
-						{
-							waitingList[index].players[0].Name = null;
-							waitingList[index].players[0].Decklist = null;
-							waitingList[index].players[0].ready = false;
-						}
-						else
-						{
-							waitingList[index].players[1].Name = null;
-							waitingList[index].players[1].Decklist = null;
-							waitingList[index].players[1].ready = false;
-						}
-						if(waitingList[index].players[0].Name == null && waitingList[index].players[1].Name == null)
-						{
-							waitingList.RemoveAt(index);
-						}
-						payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+						waitingList.Add(new Room(name, id, currentPort));
+						payload = Functions.GeneratePayload<ServerPackets.CreateResponse>(new ServerPackets.CreateResponse
 						{
 							success = true
 						});
 					}
 				}
-				break;
-			case NetworkingConstants.PacketType.ServerRoomsRequest:
+			}
+			break;
+			case NetworkingConstants.PacketType.ServerJoinRequest:
+			{
+				ServerPackets.JoinRequest request = Functions.DeserializeJson<ServerPackets.JoinRequest>(packet);
+				Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
+				if(request.name!.Contains("µ"))
 				{
-					if(waitingList.Exists(x => x.players[0].Name == null))
+					payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
 					{
-						Functions.Log($"There is a player whose name is null", severity: Functions.LogSeverity.Error, includeFullPath: true);
-						return false;
-					}
-					payload = Functions.GeneratePayload<ServerPackets.RoomsResponse>(new ServerPackets.RoomsResponse
-					{
-						rooms = waitingList.ConvertAll(x => x.players[0].Name!).ToArray()
+						success = false,
+						reason = "Your name cannot contain 'µ'"
 					});
 				}
-				break;
-			case NetworkingConstants.PacketType.ServerStartRequest:
+				else if(waitingList.FindIndex(nameExists) != -1 || runningList.FindIndex(nameExists) != -1)
 				{
-					Functions.Log("----START REQUEST HANDLING----", includeFullPath: true);
-					ServerPackets.StartRequest request = Functions.DeserializeJson<ServerPackets.StartRequest>(packet);
-					Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
-					int index = waitingList.FindIndex(nameExists);
-					Functions.Log("Waiting List index: " + index, includeFullPath: true);
+					payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
+					{
+						success = false,
+						reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
+					});
+				}
+				else
+				{
+					int index = waitingList.FindIndex(x => x.players[0].Name == request.targetName);
 					if(index == -1)
 					{
-						// We still have to check if the other player started, moving the room to the running list
-						index = runningList.FindIndex(nameExists);
-						Functions.Log("Running List Index: " + index, includeFullPath: true);
-						if(index == -1)
+						payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
 						{
-							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-							{
-								success = false,
-								reason = "You are not part of any waiting room"
-							});
-						}
-						else
-						{
-							int player = (runningList[index].players[0].Name == request.name) ? 0 : 1;
-							Functions.Log("Player: " + player, includeFullPath: true);
-							runningList[index].players[player].ready = true;
-							runningList[index].players[player].noshuffle = request.noshuffle;
-							runningList[index].players[player].Decklist = request.decklist;
-							if(runningList[index].StartGame())
-							{
-								Functions.Log("Starting the game", includeFullPath: true);
-								payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-								{
-									success = true,
-									id = runningList[index].players.First(x => x.Name == request.name).ID,
-									port = runningList[index].port,
-								});
-
-							}
-							else
-							{
-								Functions.Log("Could not create the core", severity: Functions.LogSeverity.Error, includeFullPath: true);
-								payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-								{
-									success = false,
-									reason = "Could not create a core"
-								});
-							}
-						}
+							success = false,
+							reason = "No player with that name hosts a game right now"
+						});
 					}
 					else
 					{
-						int player = (waitingList[index].players[0].Name == request.name) ? 0 : 1;
+						string id = BitConverter.ToString(Program.sha.ComputeHash(Encoding.UTF8.GetBytes(Program.seed + request.name))).Replace("-", "");
+						waitingList[index].players[1] = new Room.Player { Name = request.name, ID = id };
+						payload = Functions.GeneratePayload<ServerPackets.JoinResponse>(new ServerPackets.JoinResponse
+						{
+							success = true
+						});
+					}
+				}
+			}
+			break;
+			case NetworkingConstants.PacketType.ServerLeaveRequest:
+			{
+				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(packet).name!;
+				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
+				int index = Program.waitingList.FindIndex(nameExists);
+				if(index == -1)
+				{
+					payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+					{
+						success = false,
+						reason = "No player with that name found in a room"
+					});
+				}
+				else
+				{
+					if(waitingList[index].players[0].Name == name)
+					{
+						waitingList[index].players[0].Name = null;
+						waitingList[index].players[0].Decklist = null;
+						waitingList[index].players[0].ready = false;
+					}
+					else
+					{
+						waitingList[index].players[1].Name = null;
+						waitingList[index].players[1].Decklist = null;
+						waitingList[index].players[1].ready = false;
+					}
+					if(waitingList[index].players[0].Name == null && waitingList[index].players[1].Name == null)
+					{
+						waitingList.RemoveAt(index);
+					}
+					payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+					{
+						success = true
+					});
+				}
+			}
+			break;
+			case NetworkingConstants.PacketType.ServerRoomsRequest:
+			{
+				if(waitingList.Exists(x => x.players[0].Name == null))
+				{
+					Functions.Log($"There is a player whose name is null", severity: Functions.LogSeverity.Error, includeFullPath: true);
+					return false;
+				}
+				payload = Functions.GeneratePayload<ServerPackets.RoomsResponse>(new ServerPackets.RoomsResponse
+				{
+					rooms = waitingList.ConvertAll(x => x.players[0].Name!).ToArray()
+				});
+			}
+			break;
+			case NetworkingConstants.PacketType.ServerStartRequest:
+			{
+				Functions.Log("----START REQUEST HANDLING----", includeFullPath: true);
+				ServerPackets.StartRequest request = Functions.DeserializeJson<ServerPackets.StartRequest>(packet);
+				Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
+				int index = waitingList.FindIndex(nameExists);
+				Functions.Log("Waiting List index: " + index, includeFullPath: true);
+				if(index == -1)
+				{
+					// We still have to check if the other player started, moving the room to the running list
+					index = runningList.FindIndex(nameExists);
+					Functions.Log("Running List Index: " + index, includeFullPath: true);
+					if(index == -1)
+					{
+						payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+						{
+							success = false,
+							reason = "You are not part of any waiting room"
+						});
+					}
+					else
+					{
+						int player = (runningList[index].players[0].Name == request.name) ? 0 : 1;
 						Functions.Log("Player: " + player, includeFullPath: true);
-						waitingList[index].players[player].ready = true;
-						waitingList[index].players[player].noshuffle = request.noshuffle;
-						waitingList[index].players[player].Decklist = request.decklist;
-						if(waitingList[index].players[1 - player].Name == null)
+						runningList[index].players[player].ready = true;
+						runningList[index].players[player].noshuffle = request.noshuffle;
+						runningList[index].players[player].Decklist = request.decklist;
+						if(runningList[index].StartGame())
 						{
-							Functions.Log("No opponent", includeFullPath: true);
+							Functions.Log("Starting the game", includeFullPath: true);
+							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+							{
+								success = true,
+								id = runningList[index].players.First(x => x.Name == request.name).ID,
+								port = runningList[index].port,
+							});
+
+						}
+						else
+						{
+							Functions.Log("Could not create the core", severity: Functions.LogSeverity.Error, includeFullPath: true);
 							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
 								success = false,
-								reason = "You have no opponent",
+								reason = "Could not create a core"
+							});
+						}
+					}
+				}
+				else
+				{
+					int player = (waitingList[index].players[0].Name == request.name) ? 0 : 1;
+					Functions.Log("Player: " + player, includeFullPath: true);
+					waitingList[index].players[player].ready = true;
+					waitingList[index].players[player].noshuffle = request.noshuffle;
+					waitingList[index].players[player].Decklist = request.decklist;
+					if(waitingList[index].players[1 - player].Name == null)
+					{
+						Functions.Log("No opponent", includeFullPath: true);
+						payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+						{
+							success = false,
+							reason = "You have no opponent",
+						});
+					}
+					else
+					{
+						Functions.Log("Opponent present", includeFullPath: true);
+						if(waitingList[index].players.All(x => x.ready))
+						{
+							Functions.Log("All players ready", includeFullPath: true);
+							Room room = waitingList[index];
+							runningList.Add(room);
+							waitingList.RemoveAt(index);
+							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+							{
+								success = true,
+								// FIXME: make this nicer, perhaps send the id when creating it?
+								id = room.players.First(x => x.Name == request.name).ID,
+								// Other thought: Let the server be Man in the Middle between core and client
+								port = room.port,
 							});
 						}
 						else
 						{
-							Functions.Log("Opponent present", includeFullPath: true);
-							if(waitingList[index].players.All(x => x.ready))
+							Functions.Log("Opponent not ready", includeFullPath: true);
+							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
-								Functions.Log("All players ready", includeFullPath: true);
-								Room room = waitingList[index];
-								runningList.Add(room);
-								waitingList.RemoveAt(index);
-								payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-								{
-									success = true,
-									// FIXME: make this nicer, perhaps send the id when creating it?
-									id = room.players.First(x => x.Name == request.name).ID,
-									// Other thought: Let the server be Man in the Middle between core and client
-									port = room.port,
-								});
-							}
-							else
-							{
-								Functions.Log("Opponent not ready", includeFullPath: true);
-								payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-								{
-									success = false,
-									reason = "Your opponent isn't ready yet"
-								});
-							}
+								success = false,
+								reason = "Your opponent isn't ready yet"
+							});
 						}
 					}
-					Functions.Log("----END----", includeFullPath: true);
 				}
-				break;
+				Functions.Log("----END----", includeFullPath: true);
+			}
+			break;
 			case NetworkingConstants.PacketType.ServerAdditionalCardsRequest:
+			{
+				string fullAdditionalCardsPath = Path.Combine(baseDir, config.additional_cards_path);
+				if(!File.Exists(fullAdditionalCardsPath) ||
+					File.GetLastWriteTime(config.additional_cards_path) > lastAdditionalCardsTimestamp)
 				{
-					string fullAdditionalCardsPath = Path.Combine(baseDir, config.additional_cards_path);
-					if(!File.Exists(fullAdditionalCardsPath) ||
-						File.GetLastWriteTime(config.additional_cards_path) > lastAdditionalCardsTimestamp)
+					ProcessStartInfo info = new ProcessStartInfo
 					{
-						ProcessStartInfo info = new ProcessStartInfo
-						{
-							Arguments = config.core_info.Arguments + " --additional_cards_path=" + fullAdditionalCardsPath,
-							CreateNoWindow = config.core_info.CreateNoWindow,
-							UseShellExecute = config.core_info.UseShellExecute,
-							FileName = config.core_info.FileName,
-							WorkingDirectory = config.core_info.WorkingDirectory,
-						};
-						Process.Start(info)?.WaitForExit(10000);
-					}
+						Arguments = config.core_info.Arguments + " --additional_cards_path=" + fullAdditionalCardsPath,
+						CreateNoWindow = config.core_info.CreateNoWindow,
+						UseShellExecute = config.core_info.UseShellExecute,
+						FileName = config.core_info.FileName,
+						WorkingDirectory = config.core_info.WorkingDirectory,
+					};
+					Process.Start(info)?.WaitForExit(10000);
+				}
 
-					if(File.Exists(fullAdditionalCardsPath))
-					{
-						payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(
-							JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
-					}
-					else
-					{
-						Functions.Log("No additional cards file exists", severity: Functions.LogSeverity.Warning);
-						payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(new ServerPackets.AdditionalCardsResponse());
-					}
-				}
-				break;
-			default:
+				if(File.Exists(fullAdditionalCardsPath))
 				{
-					throw new Exception($"ERROR: Unable to process this packet: Packet type: {type} | {packet}");
+					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(
+						JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
 				}
+				else
+				{
+					Functions.Log("No additional cards file exists", severity: Functions.LogSeverity.Warning);
+					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(new ServerPackets.AdditionalCardsResponse());
+				}
+			}
+			break;
+			default:
+			{
+				throw new Exception($"ERROR: Unable to process this packet: Packet type: {type} | {packet}");
+			}
 		}
 		stream.Write(payload.ToArray(), 0, payload.Count);
 		return false;
