@@ -7,7 +7,7 @@
 		"core_info":
 		{
 			"FileName": "../CardGameCore/bin/Debug/net7.0/CardGameCore",
-			"Arguments": "--mode=duel --config=../../../config/config.json",
+			"Arguments": "--config=../../../config/config.json",
 			"WorkingDirectory": "/Data/Prog/Programme/CardGameCore"
 		},
 		"additional_cards_path": "./additional_cards.json",
@@ -21,7 +21,7 @@
 		"core_info":
 		{
 			"FileName": "..\\CardGameCore\\bin\\Debug\\net7.0\\CardGameCore.exe",
-			"Arguments": "--mode=duel --config=..\\..\\..\\config\\config.json"
+			"Arguments": "--config=..\\..\\..\\config\\config.json"
 		},
 		"additional_cards_path": ".\\additional_cards.json"
 	}
