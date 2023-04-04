@@ -378,27 +378,29 @@ class Program
 				break;
 			case NetworkingConstants.PacketType.ServerAdditionalCardsRequest:
 				{
-					if(!File.Exists(Program.config.additional_cards_path) ||
-						File.GetLastWriteTime(Program.config.additional_cards_path) > Program.lastAdditionalCardsTimestamp)
+					string fullAdditionalCardsPath = Path.Combine(baseDir, config.additional_cards_path);
+					if(!File.Exists(fullAdditionalCardsPath) ||
+						File.GetLastWriteTime(config.additional_cards_path) > lastAdditionalCardsTimestamp)
 					{
 						ProcessStartInfo info = new ProcessStartInfo
 						{
-							Arguments = "--additional_cards_path=" + Program.config.additional_cards_path,
-							CreateNoWindow = Program.config.core_info.CreateNoWindow,
-							UseShellExecute = Program.config.core_info.UseShellExecute,
-							FileName = Program.config.core_info.FileName,
-							WorkingDirectory = Program.config.core_info.WorkingDirectory,
+							Arguments = config.core_info.Arguments + " --additional_cards_path=" + fullAdditionalCardsPath,
+							CreateNoWindow = config.core_info.CreateNoWindow,
+							UseShellExecute = config.core_info.UseShellExecute,
+							FileName = config.core_info.FileName,
+							WorkingDirectory = config.core_info.WorkingDirectory,
 						};
 						Process.Start(info)?.WaitForExit(10000);
 					}
 
-					if(File.Exists(config.additional_cards_path))
+					if(File.Exists(fullAdditionalCardsPath))
 					{
 						payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(
-							JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(Program.config.additional_cards_path), NetworkingConstants.jsonIncludeOption)!);
+							JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
 					}
 					else
 					{
+						Functions.Log("No additional cards file exists", severity: Functions.LogSeverity.Warning);
 						payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(new ServerPackets.AdditionalCardsResponse());
 					}
 				}
