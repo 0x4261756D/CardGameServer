@@ -8,9 +8,8 @@
 		{
 			"_FileName": "../CardGameCore/bin/Release/net7.0/linux-x64/publish/CardGameCore",
 			"FileName": "../CardGameCore/bin/Debug/net7.0/CardGameCore",
-			"_Arguments": "--mode=duel --config=../../../../../config/config.json",
-			"Arguments": "--mode=duel --config=../../../config/config.json",
 			"WorkingDirectory": "../CardGameCore"
+			"Arguments": "--config=../../../config/config.json",
 		},
 		"additional_cards_path": "./additional_cards.json",
 		"should_record": true
@@ -23,7 +22,7 @@
 		"core_info":
 		{
 			"FileName": "..\\CardGameCore\\bin\\Debug\\net7.0\\CardGameCore.exe",
-			"Arguments": "--mode=duel --config=..\\..\\..\\config\\config.json"
+			"Arguments": "--config=..\\..\\..\\config\\config.json"
 		},
 		"additional_cards_path": ".\\additional_cards.json"
 	}

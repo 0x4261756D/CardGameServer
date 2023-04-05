@@ -69,7 +69,7 @@ class Room
 		{
 			return false;
 		}
-		string additionalArgs = $" --port={port} --players={Convert.ToBase64String(Encoding.UTF8.GetBytes(playerString))}" +
+		string additionalArgs = $" --mode=duel --port={port} --players={Convert.ToBase64String(Encoding.UTF8.GetBytes(playerString))}" +
 			$" --noshuffle={players[0].noshuffle && players[1].noshuffle}";
 		ProcessStartInfo info = new ProcessStartInfo
 		{
