@@ -8,8 +8,8 @@
 		{
 			"_FileName": "../CardGameCore/bin/Release/net7.0/linux-x64/publish/CardGameCore",
 			"FileName": "../CardGameCore/bin/Debug/net7.0/CardGameCore",
-			"WorkingDirectory": "../CardGameCore"
-			"Arguments": "--config=../../../config/config.json",
+			"WorkingDirectory": "../CardGameCore",
+			"Arguments": "--config=../../../config/config.json"
 		},
 		"additional_cards_path": "./additional_cards.json",
 		"should_record": true
