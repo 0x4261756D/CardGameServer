@@ -11,8 +11,7 @@
 			"WorkingDirectory": "../CardGameCore",
 			"Arguments": "--config=../../../config/config.json"
 		},
-		"additional_cards_path": "./additional_cards.json",
-		"should_record": true
+		"additional_cards_path": "./additional_cards.json"
 	},
 	"windows":
 	{
