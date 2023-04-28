@@ -71,8 +71,9 @@ class Program
 		while(true)
 		{
 			Functions.Log("Server waiting for a connection", includeFullPath: true);
-			TcpClient client = listener.AcceptTcpClient();
+			//TcpClient client = listener.AcceptTcpClient();
 			Functions.Log("Server connected", includeFullPath: true);
+			using(TcpClient client = listener.AcceptTcpClient())
 			using(NetworkStream stream = client.GetStream())
 			{
 				Functions.Log("Waiting for data", includeFullPath: true);
