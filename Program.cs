@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -239,14 +239,46 @@ class Program
 			{
 				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(packet).name!;
 				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
-				int index = Program.waitingList.FindIndex(nameExists);
+				int index = waitingList.FindIndex(nameExists);
 				if(index == -1)
 				{
-					payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+					index = runningList.FindIndex(nameExists);
+					if(index == -1)
 					{
-						success = false,
-						reason = "No player with that name found in a room"
-					});
+						payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+						{
+							success = false,
+							reason = "No player with that name found in a room"
+						});
+					}
+					else
+					{
+						if(runningList[index].players[0].Name == name)
+						{
+							runningList[index].players[0].Name = null;
+							runningList[index].players[0].Decklist = null;
+							runningList[index].players[0].ready = false;
+						}
+						else
+						{
+							runningList[index].players[1].Name = null;
+							runningList[index].players[1].Decklist = null;
+							runningList[index].players[1].ready = false;
+						}
+						if(runningList[index].players[0].Name == null && runningList[index].players[1].Name == null)
+						{
+							runningList.RemoveAt(index);
+						}
+						else
+						{
+							waitingList.Add(runningList[index]);
+							runningList.RemoveAt(index);
+						}
+						payload = Functions.GeneratePayload<ServerPackets.LeaveResponse>(new ServerPackets.LeaveResponse
+						{
+							success = true
+						});
+					}
 				}
 				else
 				{
