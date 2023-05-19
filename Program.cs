@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -163,6 +164,13 @@ class Program
 									free = false;
 									break;
 								}
+							}
+						}
+						if(free)
+						{
+							if(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Any(x => x.LocalEndPoint.Port == i))
+							{
+								free = false;
 							}
 						}
 						if(free)
