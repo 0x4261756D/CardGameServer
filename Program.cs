@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -71,32 +71,39 @@ class Program
 		while(true)
 		{
 			Functions.Log("Server waiting for a connection", includeFullPath: true);
-			//TcpClient client = listener.AcceptTcpClient();
+			TcpClient client = listener.AcceptTcpClient();
 			Functions.Log("Server connected", includeFullPath: true);
-			using(TcpClient client = listener.AcceptTcpClient())
-			using(NetworkStream stream = client.GetStream())
+			NetworkStream stream = client.GetStream();
+			Functions.Log("Waiting for data", includeFullPath: true);
+			bytes = Functions.ReceiveRawPacket(stream)!;
+			Functions.Log("Server received a request", includeFullPath: true);
+			HandlePacketReturn decision = HandlePacket(bytes, stream);
+			if(decision == HandlePacketReturn.Break)
 			{
-				Functions.Log("Waiting for data", includeFullPath: true);
-				while(!stream.DataAvailable)
-				{
-					Thread.Sleep(10);
-				}
-				bytes = Functions.ReceiveRawPacket(stream)!;
-				Functions.Log("Server received a request", includeFullPath: true);
-				if(HandlePacket(bytes, stream))
-				{
-					Functions.Log("Server received a request signalling it should stop", includeFullPath: true);
-					break;
-				}
-				Functions.Log("Server sent a response", includeFullPath: true);
+				Functions.Log("Server received a request signalling it should stop", includeFullPath: true);
+				break;
+			}
+			Functions.Log("Server sent a response", includeFullPath: true);
+			if(decision != HandlePacketReturn.ContinueKeepStream)
+			{
 				stream.Close();
 				client.Close();
+				client.Dispose();
+				stream.Dispose();
 			}
 		}
 		listener.Stop();
 
 	}
-	private static bool HandlePacket(List<byte> bytes, NetworkStream stream)
+
+	private enum HandlePacketReturn
+	{
+		Break,
+		Continue,
+		ContinueKeepStream,
+	}
+
+	private static HandlePacketReturn HandlePacket(List<byte> bytes, NetworkStream stream)
 	{
 		int cleanedRoomsCount = runningList.RemoveAll(x => x.core?.HasExited ?? false);
 		Functions.Log($"Cleaned up {cleanedRoomsCount} abandoned rooms, {runningList.Count} rooms still open", includeFullPath: true);
@@ -271,7 +278,7 @@ class Program
 				if(waitingList.Exists(x => x.players[0].Name == null))
 				{
 					Functions.Log($"There is a player whose name is null", severity: Functions.LogSeverity.Error, includeFullPath: true);
-					return false;
+					return HandlePacketReturn.Continue;
 				}
 				payload = Functions.GeneratePayload<ServerPackets.RoomsResponse>(new ServerPackets.RoomsResponse
 				{
@@ -295,34 +302,32 @@ class Program
 					{
 						payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 						{
-							success = false,
+							success = ServerPackets.StartResponse.Result.Failure,
 							reason = "You are not part of any waiting room"
 						});
 					}
 					else
 					{
-						int player = (runningList[index].players[0].Name == request.name) ? 0 : 1;
+						Room room = runningList[index];
+						int player = (room.players[0].Name == request.name) ? 0 : 1;
 						Functions.Log("Player: " + player, includeFullPath: true);
-						runningList[index].players[player].ready = true;
-						runningList[index].players[player].noshuffle = request.noshuffle;
-						runningList[index].players[player].Decklist = request.decklist;
-						if(runningList[index].StartGame())
+						room.players[player].ready = true;
+						room.players[player].noshuffle = request.noshuffle;
+						room.players[player].Decklist = request.decklist;
+						room.players[player].stream = new NetworkStream(stream.Socket);
+						if(room.StartGame())
 						{
-							Functions.Log("Starting the game", includeFullPath: true);
 							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
-								success = true,
-								id = runningList[index].players.First(x => x.Name == request.name).ID,
-								port = runningList[index].port,
+								success = ServerPackets.StartResponse.Result.SuccessButWaiting,
 							});
-
 						}
 						else
 						{
 							Functions.Log("Could not create the core", severity: Functions.LogSeverity.Error, includeFullPath: true);
-							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+							List<byte> startPayload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
-								success = false,
+								success = ServerPackets.StartResponse.Result.Failure,
 								reason = "Could not create a core"
 							});
 						}
@@ -340,7 +345,7 @@ class Program
 						Functions.Log("No opponent", includeFullPath: true);
 						payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 						{
-							success = false,
+							success = ServerPackets.StartResponse.Result.Failure,
 							reason = "You have no opponent",
 						});
 					}
@@ -353,21 +358,20 @@ class Program
 							Room room = waitingList[index];
 							runningList.Add(room);
 							waitingList.RemoveAt(index);
+							room.players[player].stream = new NetworkStream(stream.Socket);
 							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
-								success = true,
-								// FIXME: make this nicer, perhaps send the id when creating it?
-								id = room.players.First(x => x.Name == request.name).ID,
-								// Other thought: Let the server be Man in the Middle between core and client
-								port = room.port,
+								success = ServerPackets.StartResponse.Result.SuccessButWaiting,
 							});
+							stream.Write(payload.ToArray(), 0, payload.Count);
+							return HandlePacketReturn.ContinueKeepStream;
 						}
 						else
 						{
 							Functions.Log("Opponent not ready", includeFullPath: true);
 							payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
 							{
-								success = false,
+								success = ServerPackets.StartResponse.Result.Failure,
 								reason = "Your opponent isn't ready yet"
 							});
 						}
@@ -411,6 +415,6 @@ class Program
 			}
 		}
 		stream.Write(payload.ToArray(), 0, payload.Count);
-		return false;
+		return HandlePacketReturn.Continue;
 	}
 }

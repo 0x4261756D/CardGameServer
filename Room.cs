@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using System.IO.Pipes;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using CardGameUtils;
+using static CardGameUtils.Structs.NetworkingStructs;
 
 namespace CardGameServer;
 
@@ -14,6 +17,7 @@ class Room
 		public string ID { get; set; }
 		public bool ready;
 		public bool noshuffle;
+		public NetworkStream stream;
 	}
 	public int port;
 	public Player[] players = new Player[2];
@@ -69,27 +73,52 @@ class Room
 		{
 			return false;
 		}
-		string additionalArgs = $" --replay=true --mode=duel --port={port} --players={Convert.ToBase64String(Encoding.UTF8.GetBytes(playerString))}" +
-			$" --noshuffle={players[0].noshuffle && players[1].noshuffle}";
-		ProcessStartInfo info = new ProcessStartInfo
+		using(AnonymousPipeServerStream pipeServerStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable))
 		{
-			Arguments = Program.config.core_info.Arguments + additionalArgs,
-			CreateNoWindow = Program.config.core_info.CreateNoWindow,
-			UseShellExecute = Program.config.core_info.UseShellExecute,
-			FileName = Program.config.core_info.FileName,
-			WorkingDirectory = Program.config.core_info.WorkingDirectory,
-		};
-		core = Process.Start(info);
-		if(core == null)
-		{
-			Functions.Log("Could not start the core process", severity: Functions.LogSeverity.Error, includeFullPath: true);
-			return false;
+
+			string additionalArgs = $" --replay=true --mode=duel --port={port} --players={Convert.ToBase64String(Encoding.UTF8.GetBytes(playerString))}" +
+				$" --noshuffle={players[0].noshuffle && players[1].noshuffle} --pipe={pipeServerStream.GetClientHandleAsString()}";
+			ProcessStartInfo info = new ProcessStartInfo
+			{
+				Arguments = Program.config.core_info.Arguments + additionalArgs,
+				CreateNoWindow = Program.config.core_info.CreateNoWindow,
+				UseShellExecute = Program.config.core_info.UseShellExecute,
+				FileName = Program.config.core_info.FileName,
+				WorkingDirectory = Program.config.core_info.WorkingDirectory,
+			};
+			core = Process.Start(info);
+			if(core == null)
+			{
+				Functions.Log("Could not start the core process", severity: Functions.LogSeverity.Error, includeFullPath: true);
+				return false;
+			}
+			core.Exited += (sender, e) =>
+			{
+				Functions.Log("Removing finished room");
+				Program.runningList.Remove(this);
+			};
+			using(StreamReader reader = new StreamReader(pipeServerStream))
+			{
+				Functions.Log("reading", severity: Functions.LogSeverity.Warning);
+				while(reader.Read() != 42)
+				{
+					Thread.Sleep(10);
+				}
+				Functions.Log("Done reading", severity: Functions.LogSeverity.Warning);
+				foreach(Player player in players)
+				{
+					List<byte> payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+					{
+						success = ServerPackets.StartResponse.Result.Success,
+						id = player.ID,
+						port = port,
+					});
+					player.stream.Write(payload.ToArray(), 0, payload.Count);
+					player.stream.Close();
+					player.stream.Dispose();
+				}
+			}
 		}
-		core.Exited += (sender, e) =>
-		{
-			Functions.Log("Removing finished room");
-			Program.runningList.Remove(this);
-		};
 		return true;
 	}
 }
