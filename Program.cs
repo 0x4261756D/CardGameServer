@@ -68,7 +68,6 @@ class Program
 		byte[] nowBytes = Encoding.UTF8.GetBytes(DateTime.Now.ToString());
 		seed = Convert.ToBase64String(sha.ComputeHash(nowBytes));
 		listener.Start();
-		List<byte> bytes = new List<byte>();
 		while(true)
 		{
 			Functions.Log("Server waiting for a connection", includeFullPath: true);
@@ -76,9 +75,9 @@ class Program
 			Functions.Log("Server connected", includeFullPath: true);
 			NetworkStream stream = client.GetStream();
 			Functions.Log("Waiting for data", includeFullPath: true);
-			bytes = Functions.ReceiveRawPacket(stream)!;
+			(byte type, byte[]? bytes) = Functions.ReceiveRawPacket(stream);
 			Functions.Log("Server received a request", includeFullPath: true);
-			HandlePacketReturn decision = HandlePacket(bytes, stream);
+			HandlePacketReturn decision = HandlePacket(type, bytes, stream);
 			if(decision == HandlePacketReturn.Break)
 			{
 				Functions.Log("Server received a request signalling it should stop", includeFullPath: true);
@@ -104,17 +103,17 @@ class Program
 		ContinueKeepStream,
 	}
 
-	private static HandlePacketReturn HandlePacket(List<byte> bytes, NetworkStream stream)
+	private static HandlePacketReturn HandlePacket(byte typeByte, byte[]? bytes, NetworkStream stream)
 	{
 		int cleanedRoomsCount = runningList.RemoveAll(x => x.core?.HasExited ?? false);
 		Functions.Log($"Cleaned up {cleanedRoomsCount} abandoned rooms, {runningList.Count} rooms still open", includeFullPath: true);
 		// THIS MIGHT CHANGE AS SENDING RAW JSON MIGHT BE TOO EXPENSIVE/SLOW
-		if(bytes[0] >= (byte)NetworkingConstants.PacketType.PACKET_COUNT)
+		if(typeByte >= (byte)NetworkingConstants.PacketType.PACKET_COUNT)
 		{
-			throw new Exception($"ERROR: Unknown packet type encountered: ({bytes[0]})");
+			throw new Exception($"ERROR: Unknown packet type encountered: ({typeByte})");
 		}
-		NetworkingConstants.PacketType type = (NetworkingConstants.PacketType)bytes[0];
-		string packet = Encoding.UTF8.GetString(bytes.GetRange(1, bytes.Count - 1).ToArray());
+		NetworkingConstants.PacketType type = (NetworkingConstants.PacketType)typeByte;
+		string packet = (bytes == null) ? "{}" : Encoding.UTF8.GetString(bytes);
 		List<byte> payload = new List<byte>();
 		Functions.Log($"Received packet of type {type}", includeFullPath: true);
 		switch(type)
@@ -439,8 +438,8 @@ class Program
 
 				if(File.Exists(fullAdditionalCardsPath))
 				{
-					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(
-						JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
+					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
+					Functions.Log($"additional cards packet length: {payload.Count}");
 				}
 				else
 				{
