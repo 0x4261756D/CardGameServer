@@ -113,7 +113,6 @@ class Program
 			throw new Exception($"ERROR: Unknown packet type encountered: ({typeByte})");
 		}
 		NetworkingConstants.PacketType type = (NetworkingConstants.PacketType)typeByte;
-		string packet = (bytes == null) ? "{}" : Encoding.UTF8.GetString(bytes);
 		List<byte> payload = new List<byte>();
 		Functions.Log($"Received packet of type {type}", includeFullPath: true);
 		switch(type)
@@ -121,7 +120,7 @@ class Program
 
 			case NetworkingConstants.PacketType.ServerCreateRequest:
 			{
-				string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(packet).name!;
+				string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(bytes!).name!;
 				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
 				if(name.Contains("µ"))
 				{
@@ -201,7 +200,7 @@ class Program
 			break;
 			case NetworkingConstants.PacketType.ServerJoinRequest:
 			{
-				ServerPackets.JoinRequest request = Functions.DeserializeJson<ServerPackets.JoinRequest>(packet);
+				ServerPackets.JoinRequest request = Functions.DeserializeJson<ServerPackets.JoinRequest>(bytes!);
 				Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
 				if(request.name!.Contains("µ"))
 				{
@@ -244,7 +243,7 @@ class Program
 			break;
 			case NetworkingConstants.PacketType.ServerLeaveRequest:
 			{
-				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(packet).name!;
+				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(bytes!).name!;
 				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
 				int index = waitingList.FindIndex(nameExists);
 				if(index == -1)
@@ -328,7 +327,7 @@ class Program
 			case NetworkingConstants.PacketType.ServerStartRequest:
 			{
 				Functions.Log("----START REQUEST HANDLING----", includeFullPath: true);
-				ServerPackets.StartRequest request = Functions.DeserializeJson<ServerPackets.StartRequest>(packet);
+				ServerPackets.StartRequest request = Functions.DeserializeJson<ServerPackets.StartRequest>(bytes!);
 				Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
 				int index = waitingList.FindIndex(nameExists);
 				Functions.Log("Waiting List index: " + index, includeFullPath: true);
@@ -450,7 +449,7 @@ class Program
 			break;
 			default:
 			{
-				throw new Exception($"ERROR: Unable to process this packet: Packet type: {type} | {packet}");
+				throw new Exception($"ERROR: Unable to process this packet: Packet type: {type} | {Encoding.UTF8.GetString(bytes!)}");
 			}
 		}
 		stream.Write(payload.ToArray(), 0, payload.Count);
