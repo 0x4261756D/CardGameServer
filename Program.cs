@@ -105,7 +105,7 @@ class Program
 
 	private static void CleanupRooms()
 	{
-		int count = 0;
+		int runningCount = 0;
 		for(int i = runningList.Count - 1; i >= 0; i--)
 		{
 			// TODO: Maybe don't be so mean, ask the players somehow if they are still alive?
@@ -114,10 +114,22 @@ class Program
 				runningList[i].players[0].stream.Close();
 				runningList[i].players[1].stream.Close();
 				runningList.RemoveAt(i);
-				count++;
+				runningCount++;
 			}
 		}
-		Functions.Log($"Cleaned up {count} abandoned rooms, {runningList.Count} rooms still open", includeFullPath: true);
+		int waitingCount = 0;
+		for(int i = waitingList.Count - 1; i >= 0; i--)
+		{
+			if((DateTime.Now - waitingList[i].startTime).Days > 1)
+			{
+				waitingList[i].players[0].stream.Close();
+				waitingList[i].players[1].stream.Close();
+				waitingList.RemoveAt(i);
+				waitingCount++;
+			}
+		}
+		Functions.Log($"Cleaned up {runningCount} abandoned running rooms, {runningList.Count} rooms still open", includeFullPath: true);
+		Functions.Log($"Cleaned up {waitingCount} abandoned waiting rooms, {waitingList.Count} rooms still open", includeFullPath: true);
 	}
 
 	private static HandlePacketReturn HandlePacket(byte typeByte, byte[]? bytes, NetworkStream stream)
