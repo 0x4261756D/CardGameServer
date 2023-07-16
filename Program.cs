@@ -103,10 +103,26 @@ class Program
 		ContinueKeepStream,
 	}
 
+	private static void CleanupRooms()
+	{
+		int count = 0;
+		for(int i = runningList.Count - 1; i >= 0; i--)
+		{
+			// TODO: Maybe don't be so mean, ask the players somehow if they are still alive?
+			if((DateTime.Now - runningList[i].startTime).Days > 1 || (runningList[i].core?.HasExited ?? false))
+			{
+				runningList[i].players[0].stream.Close();
+				runningList[i].players[1].stream.Close();
+				runningList.RemoveAt(i);
+				count++;
+			}
+		}
+		Functions.Log($"Cleaned up {count} abandoned rooms, {runningList.Count} rooms still open", includeFullPath: true);
+	}
+
 	private static HandlePacketReturn HandlePacket(byte typeByte, byte[]? bytes, NetworkStream stream)
 	{
-		int cleanedRoomsCount = runningList.RemoveAll(x => x.core?.HasExited ?? false);
-		Functions.Log($"Cleaned up {cleanedRoomsCount} abandoned rooms, {runningList.Count} rooms still open", includeFullPath: true);
+		CleanupRooms();
 		// THIS MIGHT CHANGE AS SENDING RAW JSON MIGHT BE TOO EXPENSIVE/SLOW
 		if(typeByte >= (byte)NetworkingConstants.PacketType.PACKET_COUNT)
 		{
