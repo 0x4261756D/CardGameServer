@@ -75,15 +75,23 @@ class Program
 			Functions.Log("Server connected", includeFullPath: true);
 			NetworkStream stream = client.GetStream();
 			Functions.Log("Waiting for data", includeFullPath: true);
-			(byte type, byte[]? bytes) = Functions.ReceiveRawPacket(stream);
-			Functions.Log("Server received a request", includeFullPath: true);
-			HandlePacketReturn decision = HandlePacket(type, bytes, stream);
-			if(decision == HandlePacketReturn.Break)
+			HandlePacketReturn decision = HandlePacketReturn.Continue;
+			try
 			{
-				Functions.Log("Server received a request signalling it should stop", includeFullPath: true);
-				break;
+				(byte type, byte[]? bytes) = Functions.ReceiveRawPacket(stream);
+				Functions.Log("Server received a request", includeFullPath: true);
+				decision = HandlePacket(type, bytes, stream);
+				if(decision == HandlePacketReturn.Break)
+				{
+					Functions.Log("Server received a request signalling it should stop", includeFullPath: true);
+					break;
+				}
+				Functions.Log("Server sent a response", includeFullPath: true);
 			}
-			Functions.Log("Server sent a response", includeFullPath: true);
+			catch(Exception e)
+			{
+				Functions.Log($"Exception while reading a message: {e}");
+			}
 			if(decision != HandlePacketReturn.ContinueKeepStream)
 			{
 				stream.Close();
