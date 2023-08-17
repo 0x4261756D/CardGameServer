@@ -364,6 +364,15 @@ class Program
 			{
 				Functions.Log("----START REQUEST HANDLING----", includeFullPath: true);
 				ServerPackets.StartRequest request = Functions.DeserializeJson<ServerPackets.StartRequest>(bytes!);
+				if(request.decklist.Length != GameConstants.DECK_SIZE + 3)
+				{
+					payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
+					{
+						success = ServerPackets.StartResponse.Result.Failure,
+						reason = "Your deck has the wrong size",
+					});
+
+				}
 				Predicate<Room> nameExists = x => x.players[0].Name == request.name || x.players[1].Name == request.name;
 				int index = waitingList.FindIndex(nameExists);
 				Functions.Log("Waiting List index: " + index, includeFullPath: true);
