@@ -62,7 +62,7 @@ class Program
 		}
 		if(File.Exists(config.additional_cards_path))
 		{
-			lastAdditionalCardsTimestamp = File.GetCreationTime(config.additional_cards_path);
+			lastAdditionalCardsTimestamp = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(config.additional_cards_path), NetworkingConstants.jsonIncludeOption)!.time;
 		}
 		TcpListener listener = new TcpListener(IPAddress.Any, config.port);
 		byte[] nowBytes = Encoding.UTF8.GetBytes(DateTime.Now.ToString());
@@ -467,7 +467,7 @@ class Program
 			{
 				string fullAdditionalCardsPath = Path.Combine(baseDir, config.additional_cards_path);
 				if(!File.Exists(fullAdditionalCardsPath) ||
-					File.GetLastWriteTime(config.additional_cards_path) > lastAdditionalCardsTimestamp)
+					JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)?.time > lastAdditionalCardsTimestamp)
 				{
 					ProcessStartInfo info = new ProcessStartInfo
 					{
@@ -482,7 +482,9 @@ class Program
 
 				if(File.Exists(fullAdditionalCardsPath))
 				{
-					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!);
+					ServerPackets.AdditionalCardsResponse response = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!;
+					lastAdditionalCardsTimestamp = response.time;
+					payload = Functions.GeneratePayload<ServerPackets.AdditionalCardsResponse>(response);
 					Functions.Log($"additional cards packet length: {payload.Count}");
 				}
 				else
