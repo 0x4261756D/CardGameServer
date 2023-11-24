@@ -6,8 +6,8 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"_FileName": "../CardGameCore/bin/Release/net7.0/linux-x64/publish/CardGameCore",
-			"FileName": "../CardGameCore/bin/Debug/net7.0/CardGameCore",
+			"_FileName": "../CardGameCore/bin/Release/net8.0/linux-x64/publish/CardGameCore",
+			"FileName": "../CardGameCore/bin/Debug/net8.0/CardGameCore",
 			"WorkingDirectory": "../CardGameCore",
 			"Arguments": "--config=../../../config/config.json"
 		},
@@ -20,7 +20,7 @@
 		"room_max_port": 39942,
 		"core_info":
 		{
-			"FileName": "..\\CardGameCore\\bin\\Debug\\net7.0\\CardGameCore.exe",
+			"FileName": "..\\CardGameCore\\bin\\Debug\\net8.0\\CardGameCore.exe",
 			"Arguments": "--config=..\\..\\..\\config\\config.json"
 		},
 		"additional_cards_path": ".\\additional_cards.json"
