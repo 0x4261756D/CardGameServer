@@ -8,7 +8,7 @@ using static CardGameUtils.Structs.NetworkingStructs;
 
 namespace CardGameServer;
 
-class Room
+partial class Room
 {
 	public struct Player
 	{
@@ -30,9 +30,9 @@ class Room
 		Functions.Log("Creating a new room. Host name: " + name, includeFullPath: true);
 		startTime = DateTime.Now;
 	}
-	public string CardNameToFilename(string name)
+	public static string CardNameToFilename(string name)
 	{
-		return Regex.Replace(name, @"[^#\|a-zA-Z0-9]", "");
+		return CardFileNameRegex().Replace(name, "");
 	}
 	public string? GeneratePlayerString()
 	{
@@ -97,27 +97,27 @@ class Room
 			Functions.Log("Removing finished room");
 			Program.runningList.Remove(this);
 		};
-		using(StreamReader reader = new StreamReader(pipeServerStream))
+		using StreamReader reader = new(pipeServerStream);
+		Functions.Log("reading", severity: Functions.LogSeverity.Warning);
+		while(reader.Read() != 42)
 		{
-			Functions.Log("reading", severity: Functions.LogSeverity.Warning);
-			while(reader.Read() != 42)
+			Thread.Sleep(10);
+		}
+		Functions.Log("Done reading", severity: Functions.LogSeverity.Warning);
+		foreach(Player player in players)
+		{
+			player.stream.Write(Functions.GeneratePayload(new ServerPackets.StartResponse
 			{
-				Thread.Sleep(10);
-			}
-			Functions.Log("Done reading", severity: Functions.LogSeverity.Warning);
-			foreach(Player player in players)
-			{
-				List<byte> payload = Functions.GeneratePayload<ServerPackets.StartResponse>(new ServerPackets.StartResponse
-				{
-					success = ServerPackets.StartResponse.Result.Success,
-					id = player.ID,
-					port = port,
-				});
-				player.stream.Write(payload.ToArray(), 0, payload.Count);
-				player.stream.Close();
-				player.stream.Dispose();
-			}
+				success = ServerPackets.StartResponse.Result.Success,
+				id = player.ID,
+				port = port,
+			}));
+			player.stream.Close();
+			player.stream.Dispose();
 		}
 		return true;
 	}
+
+	[GeneratedRegex(@"[^#\|a-zA-Z0-9]")]
+	private static partial Regex CardFileNameRegex();
 }
