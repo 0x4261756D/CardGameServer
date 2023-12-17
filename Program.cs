@@ -279,7 +279,7 @@ class Program
 			case NetworkingConstants.PacketType.ServerLeaveRequest:
 			{
 				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(bytes!).name!;
-				Predicate<Room> nameExists = x => x.players[0].Name == name || x.players[1].Name == name;
+				bool nameExists(Room x) => x.players[0].Name == name || x.players[1].Name == name;
 				int index = waitingList.FindIndex(nameExists);
 				if(index == -1)
 				{

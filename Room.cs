@@ -75,10 +75,10 @@ partial class Room
 		{
 			return false;
 		}
-		using AnonymousPipeServerStream pipeServerStream = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+		using AnonymousPipeServerStream pipeServerStream = new(PipeDirection.In, HandleInheritability.Inheritable);
 		string additionalArgs = $" --replay=true --mode=duel --port={port} --players={Convert.ToBase64String(Encoding.UTF8.GetBytes(playerString))}" +
 			$" --noshuffle={players[0].noshuffle && players[1].noshuffle} --pipe={pipeServerStream.GetClientHandleAsString()}";
-		ProcessStartInfo info = new ProcessStartInfo
+		ProcessStartInfo info = new()
 		{
 			Arguments = Program.config.core_info.Arguments + additionalArgs,
 			CreateNoWindow = Program.config.core_info.CreateNoWindow,
