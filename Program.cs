@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -201,7 +204,7 @@ class Program
 						}
 						if(free)
 						{
-							if(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Any(x => x.LocalEndPoint.Port == i))
+							if(Array.Exists(IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections(), x => x.LocalEndPoint.Port == i))
 							{
 								free = false;
 							}
@@ -434,7 +437,7 @@ class Program
 					else
 					{
 						Functions.Log("Opponent present", includeFullPath: true);
-						if(waitingList[index].players.All(x => x.ready))
+						if(Array.TrueForAll(waitingList[index].players, x => x.ready))
 						{
 							Functions.Log("All players ready", includeFullPath: true);
 							Room room = waitingList[index];
