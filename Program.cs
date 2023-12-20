@@ -160,15 +160,7 @@ class Program
 			{
 				string name = Functions.DeserializeJson<ServerPackets.CreateRequest>(bytes!).name!;
 				bool nameExists(Room x) => x.players[0].Name == name || x.players[1].Name == name;
-				if(name.Contains('µ'))
-				{
-					payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
-					{
-						success = false,
-						reason = "Your name cannot contain 'µ'"
-					});
-				}
-				else if(waitingList.Exists(nameExists) || runningList.Exists(nameExists))
+				if(waitingList.Exists(nameExists) || runningList.Exists(nameExists))
 				{
 					payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
 					{
@@ -240,15 +232,7 @@ class Program
 			{
 				ServerPackets.JoinRequest request = Functions.DeserializeJson<ServerPackets.JoinRequest>(bytes!);
 				bool nameExists(Room x) => x.players[0].Name == request.name || x.players[1].Name == request.name;
-				if(request.name!.Contains('µ'))
-				{
-					payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
-					{
-						success = false,
-						reason = "Your name cannot contain 'µ'"
-					});
-				}
-				else if(waitingList.FindIndex(nameExists) != -1 || runningList.FindIndex(nameExists) != -1)
+				if(waitingList.FindIndex(nameExists) != -1 || runningList.FindIndex(nameExists) != -1)
 				{
 					payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
 					{

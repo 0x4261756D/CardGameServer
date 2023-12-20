@@ -4,9 +4,10 @@ using System.IO;
 using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 using System.Threading;
 using CardGameUtils;
+using CardGameUtils.Structs;
 using static CardGameUtils.Structs.NetworkingStructs;
 
 namespace CardGameServer;
@@ -33,38 +34,24 @@ partial class Room
 		Functions.Log("Creating a new room. Host name: " + name, includeFullPath: true);
 		startTime = DateTime.Now;
 	}
-	public static string CardNameToFilename(string name)
-	{
-		return CardFileNameRegex().Replace(name, "");
-	}
 	public string? GeneratePlayerString()
 	{
-		string s = "µ" + players[0].Name + "µ" + players[0].ID + "µ";
-		if(players[0].Decklist == null)
+		CoreConfig.PlayerConfig[] infos = new CoreConfig.PlayerConfig[players.Length];
+		for(int i = 0; i < players.Length; i++)
 		{
-			Functions.Log($"Unable to generate player string, player 0 ({players[0].Name}) has no decklist", severity: Functions.LogSeverity.Error, includeFullPath: true);
-			return null;
+			if(players[i].Name == null)
+			{
+				Functions.Log($"Unable to generate player string, player {i} has no name", severity: Functions.LogSeverity.Error, includeFullPath: true);
+				return null;
+			}
+			if(players[i].Decklist == null)
+			{
+				Functions.Log($"Unable to generate player string, player {i} ({players[i].Name}) has no decklist", severity: Functions.LogSeverity.Error, includeFullPath: true);
+				return null;
+			}
+			infos[i] = new CoreConfig.PlayerConfig(name: players[i].Name!, id: players[i].ID, decklist: players[i].Decklist!);
 		}
-		foreach(string name in players[0].Decklist!)
-		{
-			if(s != "")
-				s += CardNameToFilename(name) + ";";
-		}
-		s = s.Remove(s.Length - 1, 1);
-		s += "µ" + players[1].Name + "µ" + players[1].ID + "µ";
-		if(players[1].Decklist == null)
-		{
-			Functions.Log($"Unable to generate player string, player 1 ({players[1].Name}) has no decklist", severity: Functions.LogSeverity.Error, includeFullPath: true);
-			return null;
-		}
-		foreach(string name in players[1].Decklist!)
-		{
-			if(s != "")
-				s += CardNameToFilename(name) + ";";
-		}
-		s = s.Remove(s.Length - 1, 1);
-		s += "µ";
-		return s;
+		return JsonSerializer.Serialize(infos, options: NetworkingConstants.jsonIncludeOption);
 	}
 	public bool StartGame()
 	{
@@ -120,7 +107,4 @@ partial class Room
 		}
 		return true;
 	}
-
-	[GeneratedRegex(@"[^#\|a-zA-Z0-9]")]
-	private static partial Regex CardFileNameRegex();
 }
