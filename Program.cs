@@ -163,10 +163,10 @@ class Program
 				if(waitingList.Exists(nameExists) || runningList.Exists(nameExists))
 				{
 					payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
-					{
-						success = false,
-						reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
-					});
+					(
+						success: false,
+						reason: "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
+					));
 				}
 				else
 				{
@@ -212,18 +212,18 @@ class Program
 					{
 						Functions.Log("No free port found", severity: Functions.LogSeverity.Warning);
 						payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
-						{
-							success = false,
-							reason = "No free port found",
-						});
+						(
+							success: false,
+							reason: "No free port found"
+						));
 					}
 					else
 					{
 						waitingList.Add(new Room(name, id, currentPort));
 						payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
-						{
-							success = true
-						});
+						(
+							success: true
+						));
 					}
 				}
 			}
@@ -235,10 +235,10 @@ class Program
 				if(waitingList.FindIndex(nameExists) != -1 || runningList.FindIndex(nameExists) != -1)
 				{
 					payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
-					{
-						success = false,
-						reason = "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
-					});
+					(
+						success: false,
+						reason: "Oh oh, sorry kiddo, looks like someone else already has that name. Why don't you pick something else? (Please watch SAO Abridged if you don't get this reference)"
+					));
 				}
 				else
 				{
@@ -246,26 +246,26 @@ class Program
 					if(index == -1)
 					{
 						payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
-						{
-							success = false,
-							reason = "No player with that name hosts a game right now"
-						});
+						(
+							success: false,
+							reason: "No player with that name hosts a game right now"
+						));
 					}
 					else
 					{
 						string id = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(seed + request.name))).Replace("-", "");
 						waitingList[index].players[1] = new Room.Player { Name = request.name, ID = id };
 						payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
-						{
-							success = true
-						});
+						(
+							success: true
+						));
 					}
 				}
 			}
 			break;
 			case NetworkingConstants.PacketType.ServerLeaveRequest:
 			{
-				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(bytes!).name!;
+				string name = Functions.DeserializeJson<ServerPackets.LeaveRequest>(bytes!).name;
 				bool nameExists(Room x) => x.players[0].Name == name || x.players[1].Name == name;
 				int index = waitingList.FindIndex(nameExists);
 				if(index == -1)
@@ -274,10 +274,10 @@ class Program
 					if(index == -1)
 					{
 						payload = Functions.GeneratePayload(new ServerPackets.LeaveResponse
-						{
-							success = false,
-							reason = "No player with that name found in a room"
-						});
+						(
+							success: false,
+							reason: "No player with that name found in a room"
+						));
 					}
 					else
 					{
@@ -303,9 +303,9 @@ class Program
 							runningList.RemoveAt(index);
 						}
 						payload = Functions.GeneratePayload(new ServerPackets.LeaveResponse
-						{
-							success = true
-						});
+						(
+							success: true
+						));
 					}
 				}
 				else
@@ -327,9 +327,9 @@ class Program
 						waitingList.RemoveAt(index);
 					}
 					payload = Functions.GeneratePayload(new ServerPackets.LeaveResponse
-					{
-						success = true
-					});
+					(
+						success: true
+					));
 				}
 			}
 			break;
@@ -340,10 +340,7 @@ class Program
 					Functions.Log($"There is a player whose name is null", severity: Functions.LogSeverity.Error, includeFullPath: true);
 					return HandlePacketReturn.Continue;
 				}
-				payload = Functions.GeneratePayload(new ServerPackets.RoomsResponse
-				{
-					rooms = [.. waitingList.ConvertAll(x => x.players[0].Name!)]
-				});
+				payload = Functions.GeneratePayload(new ServerPackets.RoomsResponse([.. waitingList.ConvertAll(x => x.players[0].Name!)]));
 			}
 			break;
 			case NetworkingConstants.PacketType.ServerStartRequest:
@@ -475,7 +472,7 @@ class Program
 				else
 				{
 					Functions.Log("No additional cards file exists", severity: Functions.LogSeverity.Warning);
-					payload = Functions.GeneratePayload(new ServerPackets.AdditionalCardsResponse());
+					payload = Functions.GeneratePayload(new ServerPackets.AdditionalCardsResponse(DateTime.Now, []));
 				}
 			}
 			break;
