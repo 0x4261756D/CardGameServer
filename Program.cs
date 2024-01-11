@@ -219,11 +219,13 @@ class Program
 					}
 					else
 					{
-						waitingList.Add(new Room(name, id, currentPort));
+						waitingList.Add(new Room(name, id, currentPort, stream));
 						payload = Functions.GeneratePayload(new ServerPackets.CreateResponse
 						(
 							success: true
 						));
+						stream.Write(payload);
+						return HandlePacketReturn.ContinueKeepStream;
 					}
 				}
 			}
@@ -242,7 +244,7 @@ class Program
 				}
 				else
 				{
-					int index = waitingList.FindIndex(x => x.players[0].Name == request.targetName);
+					int index = waitingList.FindIndex(x => x.players[0].Name == request.targetName || x.players[1].Name == request.targetName);
 					if(index == -1)
 					{
 						payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
@@ -254,11 +256,18 @@ class Program
 					else
 					{
 						string id = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(seed + request.name))).Replace("-", "");
-						waitingList[index].players[1] = new Room.Player { Name = request.name, ID = id };
+						int playerIndex = waitingList[index].players[0].Name == request.targetName ? 1 : 0;
+						waitingList[index].players[playerIndex] = new Room.Player { Name = request.name, ID = id, stream = stream };
 						payload = Functions.GeneratePayload(new ServerPackets.JoinResponse
 						(
 							success: true
 						));
+						if(waitingList[index].players[1 - playerIndex].stream != null && waitingList[index].players[1 - playerIndex].stream.Socket.Connected)
+						{
+							waitingList[index].players[1 - playerIndex].stream.Write(Functions.GeneratePayload(new ServerPackets.OpponentChangedResponse(request.name)));
+						}
+						stream.Write(payload);
+						return HandlePacketReturn.ContinueKeepStream;
 					}
 				}
 			}
@@ -281,18 +290,10 @@ class Program
 					}
 					else
 					{
-						if(runningList[index].players[0].Name == name)
-						{
-							runningList[index].players[0].Name = null;
-							runningList[index].players[0].Decklist = null;
-							runningList[index].players[0].ready = false;
-						}
-						else
-						{
-							runningList[index].players[1].Name = null;
-							runningList[index].players[1].Decklist = null;
-							runningList[index].players[1].ready = false;
-						}
+						int playerIndex = runningList[index].players[0].Name == name ? 0 : 1;
+						runningList[index].players[playerIndex].Name = null;
+						runningList[index].players[playerIndex].Decklist = null;
+						runningList[index].players[playerIndex].ready = false;
 						if(runningList[index].players[0].Name == null && runningList[index].players[1].Name == null)
 						{
 							runningList.RemoveAt(index);
@@ -301,6 +302,10 @@ class Program
 						{
 							waitingList.Add(runningList[index]);
 							runningList.RemoveAt(index);
+							if(waitingList[index].players[1 - playerIndex].stream.Socket.Connected)
+							{
+								waitingList[index].players[1 - playerIndex].stream.Write(Functions.GeneratePayload(new ServerPackets.OpponentChangedResponse(null)));
+							}
 						}
 						payload = Functions.GeneratePayload(new ServerPackets.LeaveResponse
 						(
@@ -310,21 +315,21 @@ class Program
 				}
 				else
 				{
-					if(waitingList[index].players[0].Name == name)
-					{
-						waitingList[index].players[0].Name = null;
-						waitingList[index].players[0].Decklist = null;
-						waitingList[index].players[0].ready = false;
-					}
-					else
-					{
-						waitingList[index].players[1].Name = null;
-						waitingList[index].players[1].Decklist = null;
-						waitingList[index].players[1].ready = false;
-					}
+					int playerIndex = waitingList[index].players[0].Name == name ? 0 : 1;
+					waitingList[index].players[playerIndex].Name = null;
+					waitingList[index].players[playerIndex].Decklist = null;
+					waitingList[index].players[playerIndex].ready = false;
+					waitingList[index].players[playerIndex].stream?.Dispose();
 					if(waitingList[index].players[0].Name == null && waitingList[index].players[1].Name == null)
 					{
 						waitingList.RemoveAt(index);
+					}
+					else
+					{
+						if(waitingList[index].players[1 - playerIndex].stream.Socket.Connected)
+						{
+							waitingList[index].players[1 - playerIndex].stream.Write(Functions.GeneratePayload(new ServerPackets.OpponentChangedResponse(null)));
+						}
 					}
 					payload = Functions.GeneratePayload(new ServerPackets.LeaveResponse
 					(
@@ -335,12 +340,12 @@ class Program
 			break;
 			case NetworkingConstants.PacketType.ServerRoomsRequest:
 			{
-				if(waitingList.Exists(x => x.players[0].Name == null))
+				if(waitingList.Exists(x => x.players[0].Name == null && x.players[1].Name == null))
 				{
 					Functions.Log($"There is a player whose name is null", severity: Functions.LogSeverity.Error, includeFullPath: true);
 					return HandlePacketReturn.Continue;
 				}
-				payload = Functions.GeneratePayload(new ServerPackets.RoomsResponse([.. waitingList.ConvertAll(x => x.players[0].Name!)]));
+				payload = Functions.GeneratePayload(new ServerPackets.RoomsResponse([.. waitingList.ConvertAll(x => x.players[0].Name ?? x.players[1].Name)]));
 			}
 			break;
 			case NetworkingConstants.PacketType.ServerStartRequest:

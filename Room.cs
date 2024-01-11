@@ -27,10 +27,10 @@ partial class Room
 	public Player[] players = new Player[2];
 	public Process? core;
 	public DateTime startTime;
-	public Room(string name, string id, int port)
+	public Room(string name, string id, int port, NetworkStream stream)
 	{
 		this.port = port;
-		players[0] = new Player() { Name = name, ready = false, ID = id, noshuffle = false };
+		players[0] = new Player() { Name = name, ready = false, ID = id, noshuffle = false, stream = stream };
 		Functions.Log("Creating a new room. Host name: " + name, includeFullPath: true);
 		startTime = DateTime.Now;
 	}
