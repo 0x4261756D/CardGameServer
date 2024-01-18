@@ -23,7 +23,7 @@ partial class Room
 		public bool noshuffle = noshuffle;
 		public NetworkStream stream = stream;
 	}
-	public bool isFinished = false;
+	public bool isFinished;
 	public int port;
 	public Player?[] players = new Player?[2];
 	public Process? core;
