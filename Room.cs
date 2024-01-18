@@ -52,7 +52,7 @@ partial class Room
 			}
 			infos[i] = new CoreConfig.PlayerConfig(name: players[i]!.Name!, id: players[i]!.ID, decklist: players[i]!.Decklist!);
 		}
-		return JsonSerializer.Serialize(infos, options: NetworkingConstants.jsonIncludeOption);
+		return JsonSerializer.Serialize(infos, options: GenericConstants.platformCoreConfigSerialization);
 	}
 	public bool StartGame()
 	{

@@ -55,7 +55,7 @@ class Program
 			Functions.Log("Please provide a config file with '--config=path/to/config'", severity: Functions.LogSeverity.Error);
 			return;
 		}
-		PlatformServerConfig platformConfig = JsonSerializer.Deserialize<PlatformServerConfig>(File.ReadAllText(configLocation), NetworkingConstants.jsonIncludeOption);
+		PlatformServerConfig platformConfig = JsonSerializer.Deserialize<PlatformServerConfig>(File.ReadAllText(configLocation), GenericConstants.platformServerConfigSerialization);
 		if(Environment.OSVersion.Platform == PlatformID.Unix)
 		{
 			config = platformConfig.linux;
@@ -66,7 +66,7 @@ class Program
 		}
 		if(File.Exists(config.additional_cards_path))
 		{
-			lastAdditionalCardsTimestamp = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(config.additional_cards_path), NetworkingConstants.jsonIncludeOption)!.time;
+			lastAdditionalCardsTimestamp = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(config.additional_cards_path), GenericConstants.packetSerialization)!.time;
 		}
 		TcpListener listener = new(IPAddress.Parse("127.0.0.1"), config.port);
 		byte[] nowBytes = Encoding.UTF8.GetBytes(DateTime.Now.ToString());
@@ -383,7 +383,7 @@ class Program
 			{
 				string fullAdditionalCardsPath = Path.Combine(baseDir, config.additional_cards_path);
 				if(!File.Exists(fullAdditionalCardsPath) ||
-					JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)?.time > lastAdditionalCardsTimestamp)
+					JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), GenericConstants.packetSerialization)?.time > lastAdditionalCardsTimestamp)
 				{
 					ProcessStartInfo info = new()
 					{
@@ -397,7 +397,7 @@ class Program
 				}
 				if(File.Exists(fullAdditionalCardsPath))
 				{
-					ServerPackets.AdditionalCardsResponse response = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), NetworkingConstants.jsonIncludeOption)!;
+					ServerPackets.AdditionalCardsResponse response = JsonSerializer.Deserialize<ServerPackets.AdditionalCardsResponse>(File.ReadAllText(fullAdditionalCardsPath), GenericConstants.packetSerialization)!;
 					lastAdditionalCardsTimestamp = response.time;
 					payload = Functions.GeneratePayload(response);
 					Functions.Log($"additional cards packet length: {payload.Length}");
