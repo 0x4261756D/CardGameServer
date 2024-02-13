@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -152,7 +152,7 @@ class Program
 								{
 									if(room.players[1 - playerIndex]?.stream.Socket.Connected ?? false)
 									{
-										room.players[1 - playerIndex]!.stream.Write(Functions.GeneratePayload(new ServerPackets.OpponentChangedResponse(null)));
+										room.players[1 - playerIndex]?.stream.Write(Functions.GeneratePayload(new ServerPackets.OpponentChangedResponse(null)));
 									}
 								}
 							}
